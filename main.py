@@ -1,7 +1,6 @@
 from datetime import datetime
 from discord.ext import commands
 import json
-from logger import log
 
 
 """
@@ -37,11 +36,9 @@ class Client(commands.Bot):
 
     async def on_connect(self):
         print(f'[i] [{get_current_time()}] {self.user} is connecting')
-        log(f'\'{self.user}\' is connecting')
 
     async def on_ready(self):
         print(f'[i] [{get_current_time()}] {self.user} has connected')
-        log(f'\'{self.user}\' has connected')
 
     """
     Summary:
@@ -50,29 +47,24 @@ class Client(commands.Bot):
     def run(self):
         try:
             self.loop.run_until_complete(self.start(get_json_value('./discord-token.json', 'token')))
-            log(f'{self.client.user.name} is starting up')
         except:
             print(f'[!] [{get_current_time()}] Failed to run the bot. Perhaps the bot token is invalid!')
-            log(f'{self.client.user.name} Failed to run the bot. Perhaps the bot token is invalid!')
 
     """
     Summary:
         Load the Cog commands
     """
     def load_extensions(self):
-        extensions = ['cogs.latency']
+        extensions = ['cogs.latency', 'cogs.lecture']
 
         for extension in extensions:
             try:
                 self.load_extension(extension)
                 print(f'[i] [{get_current_time()}] Successfully loaded extension [{extension}]')
-                log(f'Successfully loaded extension [{extension}]')
             except:
                 print(f'[!] [{get_current_time()}] Failed to load extension [{extension}]')
-                log(f'Failed to load extension [{extension}]')
 
 
 if __name__ == '__main__':
-    log('---------- NEW SESSION')
     client = Client()
     client.run()
