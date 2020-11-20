@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-from logger import log
 
 
 class Latency(commands.Cog):
@@ -14,7 +13,6 @@ class Latency(commands.Cog):
                               color=discord.Color.from_rgb(114, 137, 218))
 
         await ctx.send(embed=embed)
-        log(f'{ctx.author} executed command \'ping\'')
 
 def setup(client):
     client.add_cog(Latency(client))
