@@ -23,15 +23,18 @@ class Lecture(commands.Cog):
 
             # Get the day index of the week starting from 0
             current_day_in_week_index = datetime.today().weekday()
+            if current_day_in_week_index > 5:
+                current_day_in_week_index = 0
 
             await ctx.send('@here')
 
-            # TODO: Make the file open automatic corresponding to the day
             with open(f'rosters/timetable_2020-11-20.csv', 'r') as csvfile:
                 reader = csv.DictReader(csvfile)
                 for row in reader:
                     # Continue only if the row is on the correct day in the week
                     if self.get_lectures_for_day(row["Start day"]) != current_day_in_week_index:
+                        print(f'START DAY: {self.get_lectures_for_day(row["Start day"])}')
+                        print(f'DAY IN WEEK: {current_day_in_week_index}')
                         continue
 
                     # Check if there are more than 0 teachers, else replace teachers field with 'None'
@@ -57,8 +60,8 @@ class Lecture(commands.Cog):
                     # Send the embed
                     await ctx.send(embed=embed)
 
-                # Sleep for 61 minutes to make sure it only triggers the while loop once
-                await asyncio.sleep(61)
+                # Sleep for 3601 seconds to make sure it only triggers the while loop once
+                await asyncio.sleep(3601)
 
     def get_lectures_for_day(self, day: str):
         switch = {
