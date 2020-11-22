@@ -10,9 +10,16 @@ class Lecture(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @commands.command(name='lecture')
+    @commands.command(name='start')
     async def lecture(self, ctx):
+        embed = discord.Embed(description='Starting', color=discord.Color.from_rgb(114, 137, 218))
+        message = await ctx.send(embed=embed)
+        message.delete(delay=3)
+
         while True:
+            while datetime.now().hour != 20:
+                await asyncio.sleep(300)
+
             # Get the day index of the week starting from 0
             current_day_in_week_index = datetime.today().weekday()
 
@@ -48,11 +55,6 @@ class Lecture(commands.Cog):
 
                     # Send the embed
                     await ctx.send(embed=embed)
-
-            while datetime.now().hour != 20:
-                await asyncio.sleep(300)
-
-            await asyncio.sleep(datetime.now().hour)
 
     def get_lectures_for_day(self, day: str):
         switch = {
