@@ -1,4 +1,5 @@
 from datetime import datetime
+import discord
 from discord.ext import commands
 import json
 
@@ -39,6 +40,7 @@ class Client(commands.Bot):
 
     async def on_ready(self):
         print(f'[i] [{get_current_time()}] {self.user} has connected')
+        await self.client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="rosters :eyes:"))
 
     """
     Summary:
