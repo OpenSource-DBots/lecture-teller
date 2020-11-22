@@ -33,8 +33,6 @@ class Lecture(commands.Cog):
                 for row in reader:
                     # Continue only if the row is on the correct day in the week
                     if self.get_lectures_for_day(row["Start day"]) != current_day_in_week_index:
-                        print(f'START DAY: {self.get_lectures_for_day(row["Start day"])}')
-                        print(f'DAY IN WEEK: {current_day_in_week_index}')
                         continue
 
                     # Check if there are more than 0 teachers, else replace teachers field with 'None'
