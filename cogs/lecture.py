@@ -12,9 +12,10 @@ class Lecture(commands.Cog):
 
     @commands.command(name='start')
     async def lecture(self, ctx):
-        embed = discord.Embed(description='Starting', color=discord.Color.from_rgb(114, 137, 218))
+        embed = discord.Embed(description='Starting to watch the roster', color=discord.Color.from_rgb(114, 137, 218))
         message = await ctx.send(embed=embed)
-        message.delete(delay=3)
+        await message.delete(delay=3)
+        await ctx.message.delete(delay=3)
 
         while True:
             while datetime.now().hour != 20:
@@ -55,6 +56,9 @@ class Lecture(commands.Cog):
 
                     # Send the embed
                     await ctx.send(embed=embed)
+
+                # Sleep for 61 minutes to make sure it only triggers the while loop once
+                await asyncio.sleep(61)
 
     def get_lectures_for_day(self, day: str):
         switch = {
