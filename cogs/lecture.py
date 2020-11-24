@@ -18,7 +18,7 @@ class Lecture(commands.Cog):
             return
 
         # Add auth user
-        self.allowed_ids.__add__(user_id)
+        self.allowed_ids.append(user_id)
 
         # Create a new Discord embed
         embed = discord.Embed(description=f':white_check_mark: User `{user_id}` succesfully added to the auth list!',
@@ -63,6 +63,7 @@ class Lecture(commands.Cog):
 
             with open(f'rosters/timetable_2020-11-20.csv', 'r') as csvfile:
                 reader = csv.DictReader(csvfile)
+                day_index = 0
                 for row in reader:
                     # Show the roster for monday when its Sunday
                     if current_day_in_week_index == 6:
@@ -70,7 +71,14 @@ class Lecture(commands.Cog):
 
                     # Continue only if the row is on the correct day in the week
                     if self.get_lectures_for_day(row["Start day"]) != current_day_in_week_index + 1:
-                        continue
+                        day_index += 1
+                        if day_index + 1 == current_day_in_week_index + 1:
+                            embed = discord.Embed(description='You have a day off! :partying_face:',
+                                                  color=discord.Color.from_rgb(114, 137, 218))
+                            await ctx.send(embed=embed)
+                            return
+                        else:
+                            continue
 
                     # Check if there are more than 0 teachers, else replace teachers field with 'None'
                     teachers = row["Staff member(s)"]
