@@ -73,7 +73,7 @@ class Lecture(commands.Cog):
                     if self.get_lectures_for_day(row["Start day"]) != current_day_in_week_index + 1:
                         day_index += 1
                         if day_index + 1 == current_day_in_week_index + 1:
-                            embed = discord.Embed(description='You have a day off! :partying_face:',
+                            embed = discord.Embed(description='You have the day off tomorrow! :partying_face:',
                                                   color=discord.Color.from_rgb(114, 137, 218))
                             await ctx.send(embed=embed)
                             return
