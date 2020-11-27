@@ -4,148 +4,143 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 
+"""
+Summary:
+    Send a Discord embed
+"""
+async def send_discord_embed(ctx: commands.Context, description: str, delete_after_seconds=False):
+    # Create a Discord embed
+    embed = discord.Embed(description=description,
+                          color=discord.Color.from_rgb(114, 137, 218))
+    # Add the footer is the message will not get deleted afterwards
+    if delete_after_seconds:
+        embed.set_footer(text='This message will automatically delete.')
+
+    # Send the embed and delete it x seconds later
+    message = await ctx.send(embed=embed)
+    if delete_after_seconds:
+        await message.delete(delay=7)
+
 
 class Lecture(commands.Cog):
-    # The users that can send the bot commands
-    allowed_ids = [368317619838779393]
 
-    def __init__(self, client):
-        self.client = client
-
-    @commands.command(name='auth')
-    async def auth_user(self, ctx, user_id):
-        if not await self.is_auth_user(ctx):
-            return
-
-        # Add auth user
-        self.allowed_ids.append(user_id)
-
-        # Create a new Discord embed
-        embed = discord.Embed(description=f':white_check_mark: User `{user_id}` succesfully added to the auth list!',
-                              color=discord.Color.from_rgb(114, 137, 218))
-
-        message = await ctx.send(embed=embed)
-        await message.delete(delay=3)
-        await ctx.message.delete(delay=3)
+    owner_id = 368317619838779393
 
     @commands.command(name='start')
-    async def lecture(self, ctx, show_now=False, debug_day=-2):
-        if not await self.is_auth_user(ctx):
+    async def start(self, ctx: commands.Context, force_start=False, force_day=-2):
+        # Delete the user's message
+        await ctx.message.delete(delay=0)
+
+        # Only allow commands from the bot owner
+        if ctx.author.id != self.owner_id:
+            await send_discord_embed(ctx, description=':robot: Apologies, I can only accept commands from my owner.',
+                                     delete_after_seconds=True)
             return
 
-        # Create a new Discord embed
-        embed = discord.Embed(description='Starting to watch the roster', color=discord.Color.from_rgb(114, 137, 218))
-        message = await ctx.send(embed=embed)
-        await message.delete(delay=3)
-        await ctx.message.delete(delay=3)
+        # Let the user know the bot is running
+        await send_discord_embed(ctx, description=':robot: _Beep Boop_! Starting to watch the rosters. You will receive'
+                                                  ' notifications **around 20:00** every day with the roster for'
+                                                  ' tomorrow.')
 
-        while True:
-            # Allow debugging when 'show_now' is set to 'True'
-            if not show_now:
-                while datetime.now().hour != 20:
-                    await asyncio.sleep(300)
+        if not force_start:
+            # While the hour of the day is not 20, sleep for 5 minutes and check again
+            while datetime.now().hour != 20:
+                await asyncio.sleep(300)
 
-            # Get the day index of the week starting from 0
-            current_day_in_week_index = datetime.today().weekday()
+        # Get the current day starting from 0
+        current_weekday = datetime.now().weekday()
 
-            # See the roster of the day you want starting from 0
-            if debug_day != -2:
-                current_day_in_week_index = debug_day
+        # Execute if the force_day is set (-2 represents non-existing day)
+        if force_day != -2:
+            current_weekday = force_day
 
-            # Mention everybody with access to that channel
-            await ctx.send('@here')
+        # Set 6 to -1 to get the roster for Monday whenever its Sunday
+        if current_weekday == 6:
+            current_weekday = -1
 
-            # Weekend message (Friday and Saturday)
-            if current_day_in_week_index == 4 or \
-                    current_day_in_week_index == 5:
-                await self.weekend(ctx)
-                return
+        # Open the roster file and read the data inside
+        with open('./rosters/roster.csv', 'r') as csv_file:
+            await ctx.send(content='@here')
 
-            with open(f'rosters/timetable_2020-11-20.csv', 'r') as csvfile:
-                reader = csv.DictReader(csvfile)
-                day_index = 0
-                for row in reader:
-                    # Show the roster for monday when its Sunday
-                    if current_day_in_week_index == 6:
-                        current_day_in_week_index = -1
+            reader = csv.DictReader(csv_file)
+            # Loop through each row in the csv file
+            row_index = -2
+            for row in reader:
+                row_index += 1
+                # Executes whenever its weekend day tomorrow
+                # Weekday 4 is Friday and weekday 5 is Saturday
+                if current_weekday + 1 == 5 or current_weekday + 1 == 6:
+                    await send_discord_embed(ctx, description=f':beers: **{self.get_full_weekday(current_weekday + 1)}**'
+                                                              f' is a weekend day! You\'re free tomorrow!')
+                    return
 
-                    # Continue only if the row is on the correct day in the week
-                    if self.get_lectures_for_day(row["Start day"]) != current_day_in_week_index + 1:
-                        day_index += 1
-                        if day_index + 1 == current_day_in_week_index + 1:
-                            embed = discord.Embed(description='You have the day off tomorrow! :partying_face:',
-                                                  color=discord.Color.from_rgb(114, 137, 218))
-                            await ctx.send(embed=embed)
-                            return
-                        else:
-                            continue
+                # Loop until there has been a roster day found that is equal to the day of the current weekday + 1
+                if row["Start day"] != self.get_weekday(current_weekday + 1):
+                    if row_index == current_weekday + 1:
+                        await send_discord_embed(ctx, description=f':partying_face: On'
+                                                                  f' **{self.get_full_weekday(current_weekday + 1)}**'
+                                                                  f' there were to lectures found! You\'re free '
+                                                                  f'tomorrow!')
+                        return
+                    continue
 
-                    # Check if there are more than 0 teachers, else replace teachers field with 'None'
-                    teachers = row["Staff member(s)"]
-                    if teachers == '':
-                        teachers = 'None'
+                # Check if there are more than 0 teachers, else replace teachers field with 'None'
+                teachers = row["Staff member(s)"]
+                if teachers == '':
+                    teachers = 'None'
 
-                    # Create a new Discord embed
-                    embed = discord.Embed(color=discord.Color.from_rgb(114, 137, 218))
-                    embed.add_field(name=':memo: Name:', value=f'`{row["Name"].capitalize()}`', inline=True)
-                    embed.add_field(name=':man_teacher: Teacher(s):', value=f'`{teachers}`', inline=True)
+                # Create a Discord embed
+                embed = discord.Embed(color=discord.Color.from_rgb(114, 137, 218))
+                embed.add_field(name=':memo: Name:', value=f'`{row["Name"].capitalize()}`', inline=True)
+                embed.add_field(name=':man_teacher: Teacher(s):', value=f'`{teachers}`', inline=True)
 
-                    # Check if the lecture has to be followed in a classroom, else leave blank
-                    classroom = row["Room(s)"]
-                    if classroom != '':
-                        embed.add_field(name=':classical_building: Classroom:', value=classroom, inline=True)
+                # Check if the lecture has to be followed in a classroom, else leave blank
+                classroom = row["Room(s)"]
+                if classroom != '':
+                    embed.add_field(name=':classical_building: Classroom:', value=classroom, inline=True)
 
-                    embed.add_field(name=':date: Day and Time:',
-                                    value=f'**{self.get_full_day_name(row["Start day"])}** '
-                                          f'at **{row["Start time"]}** until **{row["End time"]}** '
-                                          f'Total duration: **{row["Duration"]}**', inline=False)
+                embed.add_field(name=':date: Day and Time:',
+                                value=f'On **{self.get_full_weekday(current_weekday + 1)}**'
+                                      f' starting at **{row["Start time"]}** until **{row["End time"]}**'
+                                      f' \nTotal duration: **{row["Duration"]}**', inline=False)
 
-                    # Send the embed
-                    await ctx.send(embed=embed)
+                # Send the embed
+                await ctx.send(embed=embed)
 
-                # Sleep for 3601 seconds to make sure it only triggers the while loop once
-                await asyncio.sleep(3601)
+        # Wait a minute shorter than a day and re-run the code above
+        await asyncio.sleep(86340)
 
-    async def weekend(self, ctx):
-        embed = discord.Embed(description='It\'s weekend! :partying_face:',
-                              color=discord.Color.from_rgb(114, 137, 218))
-        await ctx.send(embed=embed)
-
-    async def is_auth_user(self, ctx):
-        # If the user is not authenticated, let the user know
-        if ctx.author.id not in self.allowed_ids:
-            # Create a new Discord embed
-            embed = discord.Embed(description=':robot: I can only accept commands from authenticated users!',
-                                  color=discord.Color.from_rgb(114, 137, 218))
-
-            message = await ctx.send(embed=embed)
-            await message.delete(delay=3)
-            await ctx.message.delete(delay=3)
-            return False
-
-        return True
-
-    def get_lectures_for_day(self, day: str):
+    """
+    Get the first 3 letters of the day (used for equations)
+    """
+    def get_weekday(self, weekday: int):
         switch = {
-            'Mon': 0,
-            'Tue': 1,
-            'Wed': 2,
-            'Thu': 3,
-            'Fri': 4,
+            0: 'Mon',
+            1: 'Tue',
+            2: 'Wed',
+            3: 'Thu',
+            4: 'Fri',
+            5: 'Sat',
+            6: 'Sun'
         }
 
-        return switch.get(day, 'Unknown day')
+        return switch.get(weekday, 'Unknown weekday')
 
-    def get_full_day_name(self, day: str):
+    """
+    Get the full name of the day (used for output)
+    """
+    def get_full_weekday(self, weekday: int):
         switch = {
-            'Mon': 'Monday',
-            'Tue': 'Tuesday',
-            'Wed': 'Wednesday',
-            'Thu': 'Thursday',
-            'Fri': 'Friday',
+            0: 'Monday',
+            1: 'Tuesday',
+            2: 'Wednesday',
+            3: 'Thursday',
+            4: 'Friday',
+            5: 'Saturday',
+            6: 'Sunday'
         }
 
-        return switch.get(day, 'Unknown day')
+        return switch.get(weekday, 'Unknown weekday')
 
 
 def setup(client):
