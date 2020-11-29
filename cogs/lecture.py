@@ -42,73 +42,74 @@ class Lecture(commands.Cog):
                                                   ' notifications **around 20:00** every day with the roster for'
                                                   ' tomorrow.')
 
-        if not force_start:
-            # While the hour of the day is not 20, sleep for 5 minutes and check again
-            while datetime.now().hour != 20:
-                await asyncio.sleep(300)
+        while True:
+            if not force_start:
+                # While the hour of the day is not 20, sleep for 5 minutes and check again
+                while datetime.now().hour != 20:
+                    await asyncio.sleep(300)
 
-        # Get the current day starting from 0
-        current_weekday = datetime.now().weekday()
+            # Get the current day starting from 0
+            current_weekday = datetime.now().weekday()
 
-        # Execute if the force_day is set (-2 represents non-existing day)
-        if force_day != -2:
-            current_weekday = force_day
+            # Execute if the force_day is set (-2 represents non-existing day)
+            if force_day != -2:
+                current_weekday = force_day
 
-        # Set 6 to -1 to get the roster for Monday whenever its Sunday
-        if current_weekday == 6:
-            current_weekday = -1
+            # Set 6 to -1 to get the roster for Monday whenever its Sunday
+            if current_weekday == 6:
+                current_weekday = -1
 
-        # Open the roster file and read the data inside
-        with open('./rosters/roster.csv', 'r') as csv_file:
-            await ctx.send(content='@here')
+            # Open the roster file and read the data inside
+            with open('./rosters/roster.csv', 'r') as csv_file:
+                await ctx.send(content='@here')
 
-            reader = csv.DictReader(csv_file)
-            # Loop through each row in the csv file
-            row_index = -2
-            for row in reader:
-                row_index += 1
-                # Executes whenever its weekend day tomorrow
-                # Weekday 4 is Friday and weekday 5 is Saturday
-                if current_weekday + 1 == 5 or current_weekday + 1 == 6:
-                    await send_discord_embed(ctx, description=f':beers: **{self.get_full_weekday(current_weekday + 1)}**'
-                                                              f' is a weekend day! You\'re free tomorrow!')
-                    return
-
-                # Loop until there has been a roster day found that is equal to the day of the current weekday + 1
-                if row["Start day"] != self.get_weekday(current_weekday + 1):
-                    if row_index == current_weekday + 1:
-                        await send_discord_embed(ctx, description=f':partying_face: On'
-                                                                  f' **{self.get_full_weekday(current_weekday + 1)}**'
-                                                                  f' there were to lectures found! You\'re free '
-                                                                  f'tomorrow!')
+                reader = csv.DictReader(csv_file)
+                # Loop through each row in the csv file
+                row_index = -2
+                for row in reader:
+                    row_index += 1
+                    # Executes whenever its weekend day tomorrow
+                    # Weekday 4 is Friday and weekday 5 is Saturday
+                    if current_weekday + 1 == 5 or current_weekday + 1 == 6:
+                        await send_discord_embed(ctx, description=f':beers: **{self.get_full_weekday(current_weekday + 1)}**'
+                                                                  f' is a weekend day! You\'re free tomorrow!')
                         return
-                    continue
 
-                # Check if there are more than 0 teachers, else replace teachers field with 'None'
-                teachers = row["Staff member(s)"]
-                if teachers == '':
-                    teachers = 'None'
+                    # Loop until there has been a roster day found that is equal to the day of the current weekday + 1
+                    if row["Start day"] != self.get_weekday(current_weekday + 1):
+                        if row_index == current_weekday + 1:
+                            await send_discord_embed(ctx, description=f':partying_face: On'
+                                                                      f' **{self.get_full_weekday(current_weekday + 1)}**'
+                                                                      f' there were to lectures found! You\'re free '
+                                                                      f'tomorrow!')
+                            return
+                        continue
 
-                # Create a Discord embed
-                embed = discord.Embed(color=discord.Color.from_rgb(114, 137, 218))
-                embed.add_field(name=':memo: Name:', value=f'`{row["Name"].capitalize()}`', inline=True)
-                embed.add_field(name=':man_teacher: Teacher(s):', value=f'`{teachers}`', inline=True)
+                    # Check if there are more than 0 teachers, else replace teachers field with 'None'
+                    teachers = row["Staff member(s)"]
+                    if teachers == '':
+                        teachers = 'None'
 
-                # Check if the lecture has to be followed in a classroom, else leave blank
-                classroom = row["Room(s)"]
-                if classroom != '':
-                    embed.add_field(name=':classical_building: Classroom:', value=classroom, inline=True)
+                    # Create a Discord embed
+                    embed = discord.Embed(color=discord.Color.from_rgb(114, 137, 218))
+                    embed.add_field(name=':memo: Name:', value=f'`{row["Name"].capitalize()}`', inline=True)
+                    embed.add_field(name=':man_teacher: Teacher(s):', value=f'`{teachers}`', inline=True)
 
-                embed.add_field(name=':date: Day and Time:',
-                                value=f'On **{self.get_full_weekday(current_weekday + 1)}**'
-                                      f' starting at **{row["Start time"]}** until **{row["End time"]}**'
-                                      f' \nTotal duration: **{row["Duration"]}**', inline=False)
+                    # Check if the lecture has to be followed in a classroom, else leave blank
+                    classroom = row["Room(s)"]
+                    if classroom != '':
+                        embed.add_field(name=':classical_building: Classroom:', value=classroom, inline=True)
 
-                # Send the embed
-                await ctx.send(embed=embed)
+                    embed.add_field(name=':date: Day and Time:',
+                                    value=f'On **{self.get_full_weekday(current_weekday + 1)}**'
+                                          f' starting at **{row["Start time"]}** until **{row["End time"]}**'
+                                          f' \nTotal duration: **{row["Duration"]}**', inline=False)
 
-        # Wait a minute shorter than a day and re-run the code above
-        await asyncio.sleep(86340)
+                    # Send the embed
+                    await ctx.send(embed=embed)
+
+            # Wait six minutes shorter than a day and re-run the code above
+            await asyncio.sleep(85800)
 
     """
     Get the first 3 letters of the day (used for equations)
